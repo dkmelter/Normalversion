@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Full-page Glowing Button Grid</title>
+<style>
+  :root{
+    --btn-size: 52px;   /* button diameter */
+    --gap: 10px;        /* space between buttons */
+    --glow-color:  #7dfaff;
+    --bg:#070617;
+  }
+
+  /* page reset */
+  html,body{
+    height:100%;
+    margin:0;
+    background: radial-gradient(1200px 600px at 10% 10%, rgba(125,250,255,.06), transparent),
+                linear-gradient(180deg, #050412 0%, var(--bg) 100%);
+    color:#fff;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* container that fills viewport */
+  .grid{
+    box-sizing:border-box;
+    padding:20px;
+    width:100%;
+    height:100vh;
+    display:grid;
+    grid-template-columns: repeat(auto-fill, var(--btn-size));
+    grid-auto-rows: var(--btn-size);
+    gap: var(--gap);
+    place-content:start;
+    align-content:start;
+    justify-content:center;
+    overflow:hidden;
+  }
+
+  /* each tile is an anchor filling its grid cell */
+  .tile{
+    display:block;
+    width:100%;
+    height:100%;
+    text-decoration:none;
+    border-radius:50%;
+    box-sizing:border-box;
+    /* layered look and glow */
+    background:
+       radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), rgba(255,255,255,0) 30%),
+       linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.06)),
+       conic-gradient(from 220deg at 50% 50%, rgba(125,250,255,0.12), rgba(120,120,255,0.04));
+    box-shadow:
+       0 0 8px rgba(125,250,255,0.12),
+       0 0 18px rgba(125,250,255,0.08),
+       inset 0 1px 0 rgba(255,255,255,0.03);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    transition: transform .14s cubic-bezier(.2,.9,.3,1), box-shadow .14s;
+    cursor:pointer;
+    color:#00151a; /* icon/text color inside button */
+    font-weight:600;
+  }
+
+  /* inner dot / icon for style */
+  .tile::after{
+    content:"";
+    width:42%;
+    height:42%;
+    border-radius:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+    filter: blur(0.4px);
+    opacity:0.95;
+    transform: translateY(-1px);
+  }
+
+  /* animated outer glow that becomes stronger on hover/focus */
+  .tile::before{
+    content:"";
+    position:absolute;
+    inset: -6px;
+    border-radius:inherit;
+    z-index:-1;
+    background: radial-gradient(circle at 50% 40%, rgba(125,250,255,0.18), rgba(125,250,255,0) 40%);
+    filter: blur(8px);
+    opacity:0.7;
+    transition: opacity .12s, transform .12s;
+  }
+
+  .tile:hover,
+  .tile:focus{
+    transform: translateY(-4px) scale(1.06);
+    box-shadow:
+      0 6px 20px rgba(125,250,255,0.18),
+      0 0 36px rgba(125,250,255,0.14);
+    z-index:2;
+  }
+
+  .tile:hover::before,
+  .tile:focus::before{
+    transform: scale(1.12);
+    opacity:1;
+    filter: blur(12px);
+  }
+
+  /* keyboard focus visible style */
+  .tile:focus{
+    outline: 3px solid rgba(125,250,255,0.18);
+    outline-offset:3px;
+  }
+
+  /* small labels used for demonstration (hidden on small buttons) */
+  .label{
+    position:absolute;
+    bottom:-20px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:11px;
+    color: #bfeef0;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .tile, .tile::before { transition: none; transform: none !important; }
+  }
+
+  /* helper to hide labels when button is small */
+  @media (max-width:480px){
+    :root{ --btn-size: 44px; --gap:8px; }
+    .label{ display:none; }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="grid" id="grid" aria-label="Grid of destinations"></div>
+
+<script>
+(function createGrid(){
+  const grid = document.getElementById('grid');
+  const size = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--btn-size')) || 52;
+  const gap  = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gap')) || 10;
+
+  function populate(){
+    // clear
+    grid.innerHTML = '';
+    // compute how many columns/rows fit (approx)
+    const vw = grid.clientWidth;
+    const vh = grid.clientHeight;
+    // columns: floor((width + gap) / (size + gap))
+    const cols = Math.max(1, Math.floor( (vw + gap) / (size + gap) ));
+    const rows = Math.max(1, Math.floor( (vh + gap) / (size + gap) ));
+    const total = cols * rows;
+
+    // Example destinations - replace these with your real links
+    const sampleLinks = [
+      "https://example.com/",
+      "https://openai.com/",
+      "https://wikipedia.org/",
+      "https://news.ycombinator.com/",
+      "https://github.com/",
+      "https://getbootstrap.com/"
+    ];
+
+    for(let i=0;i<total;i++){
+      const a = document.createElement('a');
+      a.className = 'tile';
+      // set destination: cycle sample links, append index so each is unique
+      a.href = sampleLinks[i % sampleLinks.length] + (sampleLinks[i % sampleLinks.length].includes('?') ? '&' : '?') + 'btn=' + (i+1);
+      a.setAttribute('aria-label', 'Go to link ' + (i+1));
+      // optional: open in new tab for external links
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+
+      // optional small label for desktop (not necessary)
+      const lbl = document.createElement('span');
+      lbl.className = 'label';
+      lbl.textContent = 'Link ' + (i+1);
+      a.appendChild(lbl);
+
+      grid.appendChild(a);
+    }
+  }
+
+  // populate initially and repopulate on resize (debounced)
+  populate();
+  let t;
+  window.addEventListener('resize', ()=> {
+    clearTimeout(t);
+    t = setTimeout(populate, 120);
+  });
+
+  // expose a function to change links in console for quick testing:
+  window.regenerateButtons = populate;
+})();
+</script>
+
+</body>
+</html>
