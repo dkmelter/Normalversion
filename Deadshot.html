@@ -1,38 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deadshot.io Fullscreen</title>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #0d0d0d;
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Deadshot.io — Click to Activate</title>
+<style>
+  html,body {
+    margin:0;
+    height:100%;
+    background:#0b0b0b;
+    overflow:hidden;
+    font-family:system-ui,Segoe UI,Roboto,Arial;
+    color:#fff;
+  }
 
-        /* Make iframe fill the entire window */
-        #gameFrame {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            border: none;
-            outline: none;
-        }
-    </style>
+  /* fullscreen iframe */
+  #gameFrame {
+    position:fixed;
+    inset:0; /* top:0; right:0; bottom:0; left:0; */
+    width:100vw;
+    height:100vh;
+    border:0;
+    outline:0;
+  }
+
+  /* activation overlay shown until user clicks */
+  #activate {
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    background:linear-gradient(180deg,#1268ff,#0a45c2);
+    color:#fff;
+    padding:18px 26px;
+    border-radius:12px;
+    box-shadow:0 10px 40px rgba(0,0,0,.6);
+    text-align:center;
+    z-index:9999;
+    cursor:pointer;
+    user-select:none;
+  }
+  #activate small { display:block; opacity:.9; margin-top:6px; font-size:12px; color:rgba(255,255,255,.9); }
+
+  /* small helper for mobile instructions */
+  @media (max-width:640px){
+    #activate { padding:14px 18px; font-size:15px; }
+  }
+
+  /* optional notice if controls appear not working */
+  #notice {
+    position:fixed;
+    left:8px;
+    bottom:8px;
+    background:rgba(0,0,0,.5);
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:13px;
+    z-index:9998;
+  }
+</style>
 </head>
 <body>
 
-    <iframe 
-        id="gameFrame"
-        src="https://www.gameflare.com/embed/deadshot-io/"
-        allowfullscreen>
-    </iframe>
+  <!-- The iframe. tabindex allows focusing; allow includes features that may be needed by the game. -->
+  <iframe
+    id="gameFrame"
+    title="Deadshot.io"
+    src="https://www.gameflare.com/embed/deadshot-io/"
+    allow="fullscreen; autoplay; accelerometer; gyroscope; magnetometer; microphone; camera; display-capture; gamepad; clipboard-write; encrypted-media; pointer-lock"
+    allowfullscreen
+    tabindex="0"
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+  ></iframe>
 
+  <!-- Activation overlay (click to enable controls) -->
+  <div id="activate" role="button" aria-pressed="false">
+    Click here to activate controls
+    <small>Click once, then use mouse & keyboard in the game</small>
+  </div>
+
+  <div id="notice" style="display:none;">
+    If controls still don’t work: try a different browser (Chrome/Firefox) or open the game in a new tab.
+  </div>
+
+<script>
+(function(){
+  const iframe = document.getElementById('gameFrame');
+  const activate = document.getElementById('activate');
+  const notice = document.getElementById('notice');
+
+  // Ensure the iframe can be focused
+  iframe.setAttribute('tabindex','0');
+
+  function activateGame() {
+    // Give the iframe focus — this allows it to receive keyboard events
+    try {
+      iframe.focus();            // allowed even for cross-origin iframes
+    } catch(e){ /* ignore */ }
+
+    // Remove the overlay visually
+    activate.style.display = 'none';
+
+    // Inform user if focus didn't appear to work after a moment
+    setTimeout(() => {
+      // If the iframe still isn't focused, show a small help notice
+      // We cannot reliably detect focus state for cross-origin content,
+      // so this is just a friendly hint.
+      notice.style.display = 'block';
+      notice.textContent = 'If controls still don’t work: click inside the game area (or try Chrome / Firefox).';
+      setTimeout(() => { notice.style.opacity = '0.95'; }, 20);
+    }, 1200);
+
+    // Some browsers require a user gesture for pointer lock — the click above is that gesture.
+  }
+
+  // Click or touch activates
+  activate.addEventListener('click', activateGame, {passive:true});
+  activate.addEventListener('touchstart', function(e){ e.preventDefault(); activateGame(); }, {passive:false});
+
+  // Also try to focus iframe if user clicks anywhere in it (some browsers let iframe get focus on click)
+  iframe.addEventListener('load', function(){
+    // When iframe loads, add a passive listener that focuses it when the user clicks in our page (useful if overlay removed)
+    document.addEventListener('click', function handler(ev){
+      // If click target is inside the iframe element or the iframe is already overlay removed, attempt focus
+      if (activate.style.display === 'none') {
+        try { iframe.focus(); } catch(e){}
+      }
+    }, {passive:true});
+  });
+
+  // Optional: keyboard shortcut (A) to activate — helpful during development
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'a' || e.key === 'A') {
+      if (activate && activate.style.display !== 'none') activateGame();
+    }
+  });
+})();
+</script>
 </body>
 </html>
